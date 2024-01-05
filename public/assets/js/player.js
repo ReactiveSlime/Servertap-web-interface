@@ -1,7 +1,7 @@
 // Fetch player info using UUID from the server
 async function fetchPlayerInfo(uuid) {
     try {
-        const response = await fetch(`http://localhost:3000/player?uuid=${uuid}`);
+        const response = await fetch(`/player?uuid=${uuid}`);
         const playerInfo = await response.json();
 
         // Display the fetched player info

@@ -2,7 +2,7 @@ async function fetchData() {
     try {
         const response = await fetch('/server-data'); // Fetch server data from your Node.js server
         const data = await response.json(); // Parse the JSON response
-        
+
         // Update HTML elements with server data
         document.getElementById('motd').innerText = data.motd;
         document.getElementById('weather').innerText = data.weather;
@@ -23,7 +23,7 @@ async function fetchData() {
                 const playerLocation = `X: ${player.location[0].toFixed(1)} Y: ${player.location[1].toFixed(1)} Z: ${player.location[2].toFixed(1)}`;
                 const playerHealth = Math.ceil(player.health);
                 const playerHunger = Math.ceil(player.hunger);
-                const playerLink = `http://localhost:3000/player.html?uuid=${playerUUID}`; // Constructing the URL
+                const playerLink = `/player.html?uuid=${playerUUID}`; // Constructing the URL
 
                 const playerNameLink = document.createElement('a');
                 playerNameLink.href = playerLink;
@@ -62,12 +62,12 @@ async function fetchData() {
         // Calculate memory usage percentage and update memory bar width and color
         const memoryUsagePercentage = (data.freeMemoryGB / data.maxMemoryGB) * 100;
         document.getElementById('memoryFill').style.width = `${memoryUsagePercentage}%`;
-        
+
         // Calculate color based on memory usage percentage (green to red gradient)
         const green = Math.min(255, Math.floor(255 * (100 - memoryUsagePercentage) / 100));
         const red = Math.min(255, Math.floor(255 * (memoryUsagePercentage) / 100));
         const color = `rgb(${red}, ${green}, 0)`;
-        
+
         // Update memory bar color
         document.getElementById('memoryFill').style.backgroundColor = color;
     } catch (error) {

@@ -9,6 +9,7 @@ app.use(bodyParser.json());
 const SERVERTAP_PORT = process.env.SERVERTAP_PORT;
 const SERVER_IP = process.env.SERVER_IP;
 const key = process.env.HEADER_KEY;
+const Protocol = process.env.SERVERTAP_PROTOCOL
 
 // Function to convert seconds to a readable time format (HH:MM:SS)
 function secondsToHms(seconds) {
@@ -30,11 +31,11 @@ app.get('/server-data', async (req, res) => {
         };
 
         // Fetch server data
-        const serverResponse = await axios.get(`${SERVER_IP}:${SERVERTAP_PORT}/v1/server`, { headers });
+        const serverResponse = await axios.get(`${Protocol}://${SERVER_IP}:${SERVERTAP_PORT}/v1/server`, { headers });
         const serverData = serverResponse.data;
 
         // Fetch player data
-        const playersResponse = await axios.get(`${SERVER_IP}:${SERVERTAP_PORT}/v1/players`, { headers });
+        const playersResponse = await axios.get(`${Protocol}://${SERVER_IP}:${SERVERTAP_PORT}/v1/players`, { headers });
         const playersData = playersResponse.data;
 
         // Combine server and player data into a single object
@@ -62,7 +63,7 @@ app.get('/players', async (req, res) => {
             'Key': key,
         };
 
-        const playersResponse = await axios.get(`${SERVER_IP}/players`, { headers });
+        const playersResponse = await axios.get(`${Protocol}://${SERVER_IP}/players`, { headers });
         const playersData = playersResponse.data;
 
         res.json(playersData);
@@ -80,7 +81,7 @@ app.get('/player', async (req, res) => {
             'Key': key,
         };
         // Make a request to your Minecraft server API with the UUID
-        const response = await axios.get(`${SERVER_IP}:${SERVERTAP_PORT}/v1/players/${uuid}`, { headers });
+        const response = await axios.get(`${Protocol}://${SERVER_IP}:${SERVERTAP_PORT}/v1/players/${uuid}`, { headers });
         // Extract the player info from the response
         const playerInfo = response.data;
 
@@ -125,7 +126,7 @@ app.get('/', (req, res) => {
 app.use(express.static('public'));
 
 // Start the server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.NODE_PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
