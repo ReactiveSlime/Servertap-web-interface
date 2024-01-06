@@ -25,6 +25,22 @@ async function fetchData() {
                 const playerHunger = Math.ceil(player.hunger);
                 const playerLink = `/player.html?uuid=${playerUUID}`; // Constructing the URL
 
+                const playerDimension = player.dimension
+                switch (playerDimension) {
+                  case "NORMAL":
+                    dimensionText = "Overworld"
+                    break;
+                  case "NETHER":
+                    dimensionText = "Neather"
+                    break;
+                  case "THE_END":
+                    dimensionText = "End"
+                    break;
+                  default:
+                    dimensionText = "Unknown"
+                }
+
+
                 const playerNameLink = document.createElement('a');
                 playerNameLink.href = playerLink;
                 playerNameLink.target = '_blank';
@@ -47,7 +63,9 @@ async function fetchData() {
                 playerDiv.appendChild(playerNameLink);
 
                 playerDiv.innerHTML += `
+                    <br>
                     <img class="player-avatar" src="https://mineskin.eu/avatar/${playerUUID}" width="64px" alt="Minecraft player head"/>
+                    <div class="player-dimesion"> In The ${dimensionText} Dimension</dib>
                     <div class="player-location">${playerLocation}</div>
                     <div class="player-health">Health ${playerHealth} ❤️</div>
                     <div class="player-hunger">Hunger ${playerHunger} 🍗</div>

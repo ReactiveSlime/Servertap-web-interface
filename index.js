@@ -6,10 +6,13 @@ const axios = require('axios');
 const app = express();
 app.use(bodyParser.json());
 
-const SERVERTAP_PORT = process.env.SERVERTAP_PORT;
-const SERVER_IP = process.env.SERVER_IP;
+const servertapPort = process.env.SERVERTAP_PORT;
+const server_IP = process.env.SERVER_IP;
 const key = process.env.HEADER_KEY;
-const Protocol = process.env.SERVERTAP_PROTOCOL
+const protocol = process.env.SERVERTAP_PROTOCOL
+const dynmap = process.env.DYNMAP
+const dynmapPort = process.env.DYNMAP_PORT
+const dynmapProtocol = process.env.DYNMAP_PROTOCOL
 
 // Function to convert seconds to a readable time format (HH:MM:SS)
 function secondsToHms(seconds) {
@@ -24,6 +27,13 @@ function bytesToGB(bytes) {
     return (bytes / (1024 * 1024 * 1024)).toFixed(2);
 }
 
+app.get('/config', (req, res) => {
+    const configData = {
+      server_IP, dynmap, dynmapPort, dynmapProtocol
+    };
+    res.json(configData);
+  });
+
 app.get('/server-data', async (req, res) => {
     try {
         const headers = {
@@ -31,11 +41,11 @@ app.get('/server-data', async (req, res) => {
         };
 
         // Fetch server data
-        const serverResponse = await axios.get(`${Protocol}://${SERVER_IP}:${SERVERTAP_PORT}/v1/server`, { headers });
+        const serverResponse = await axios.get(`${protocol}://${server_IP}:${servertapPort}/v1/server`, { headers });
         const serverData = serverResponse.data;
 
         // Fetch player data
-        const playersResponse = await axios.get(`${Protocol}://${SERVER_IP}:${SERVERTAP_PORT}/v1/players`, { headers });
+        const playersResponse = await axios.get(`${protocol}://${server_IP}:${servertapPort}/v1/players`, { headers });
         const playersData = playersResponse.data;
 
         // Combine server and player data into a single object
@@ -56,23 +66,6 @@ app.get('/server-data', async (req, res) => {
     }
 });
 
-
-app.get('/players', async (req, res) => {
-    try {
-        const headers = {
-            'Key': key,
-        };
-
-        const playersResponse = await axios.get(`${Protocol}://${SERVER_IP}/players`, { headers });
-        const playersData = playersResponse.data;
-
-        res.json(playersData);
-    } catch (error) {
-        console.error('Failed to fetch player data:', error);
-        res.status(500).json({ error: 'Failed to fetch player data' });
-    }
-});
-
 app.get('/player', async (req, res) => {
     const uuid = req.query.uuid;
 
@@ -81,7 +74,7 @@ app.get('/player', async (req, res) => {
             'Key': key,
         };
         // Make a request to your Minecraft server API with the UUID
-        const response = await axios.get(`${Protocol}://${SERVER_IP}:${SERVERTAP_PORT}/v1/players/${uuid}`, { headers });
+        const response = await axios.get(`${protocol}://${server_IP}:${servertapPort}/v1/players/${uuid}`, { headers });
         // Extract the player info from the response
         const playerInfo = response.data;
 
@@ -97,15 +90,20 @@ app.get('/player', async (req, res) => {
 app.get('/mojang-api', async (req, res) => {
     const { uuid } = req.query;
     const trimmedUUID = uuid.replace(/-/g, '');
-  
+
     try {
-      const response = await axios.get(`https://api.mojang.com/user/profile/${trimmedUUID}`);
-      res.json(response.data);
+        const response = await axios.get(`https://api.mojang.com/user/profile/${trimmedUUID}`);
+        
+        // Check if the response contains an 'id' and a 'name' (indicating a valid UUID)
+        if (response.data.id && response.data.name) {
+            res.json({ valid: true, playerInfo: response.data });
+        } else {
+            res.json({ valid: false });
+        }
     } catch (error) {
-      console.error('Error fetching data from Mojang API:', error.message);
-      res.status(500).json({ error: 'Failed to fetch data from Mojang API' });
+        res.json({ valid: false });
     }
-  });
+});
 
 function getWeatherStatus(isStorm, isThundering) {
     if (isThundering) {
