@@ -1,21 +1,43 @@
 let validUUID = false; // Flag to track UUID validation
+let serverIP, dynmap, dynmapPort, dynmapProtocol; // Initialize variables to store config data
 
-// Get the server IP and Dynmap bool from the .env file
+// Fetch server configuration data and start fetching player info
 fetch('/config')
   .then(response => response.json())
   .then(config => {
-    serverIP = config.server_IP
-    dynmap = config.dynmap
-    dynmapPort = config.dynmapPort
-    dynmapProtocol = config.dynmapProtocol
+    serverIP = config.server_IP;
+    dynmap = config.dynmap;
+    dynmapPort = config.dynmapPort;
+    dynmapProtocol = config.dynmapProtocol;
+
+    // Get UUID from the URL and initiate data fetching
+    const urlParams = new URLSearchParams(window.location.search);
+    const uuid = urlParams.get('uuid');
+
+    if (uuid) {
+        fetchPlayerInfo(uuid);
+
+        // Update player info at regular intervals
+        setInterval(() => {
+            fetchPlayerInfo(uuid);
+        }, 1000);
+    } else {
+        console.error('UUID not provided in the URL');
+    }
   })
   .catch(error => console.error('Error fetching config data:', error));
 
-
-async function fetchPlayerInfo(uuid) {
+  async function fetchPlayerInfo(uuid) {
     try {
-        const response = await fetch(`/mojang-api?uuid=${uuid}`);
-        const playerInfo = await response.json();
+        const [mojangResponse, playerResponse] = await Promise.all([
+            fetch(`/mojang-api?uuid=${uuid}`),
+            fetch(`/player?uuid=${uuid}`)
+        ]);
+
+        const [playerInfo, playerData] = await Promise.all([
+            mojangResponse.json(),
+            playerResponse.json()
+        ]);
 
         // Check if UUID is valid (only check once)
         if (!validUUID && playerInfo.valid) {
@@ -23,16 +45,20 @@ async function fetchPlayerInfo(uuid) {
             displayPlayerInfo(playerInfo);
         } else if (!playerInfo.valid) {
             console.error('Invalid UUID');
+            // Redirect to the 400 error page
+            window.location.href = '/error/400.html';
         }
-
         // Always update player info
-        const playerResponse = await fetch(`/player?uuid=${uuid}`);
-        const playerData = await playerResponse.json();
         displayPlayerInfo(playerData);
     } catch (error) {
         console.error('Error fetching player info:', error);
+        // Handle other errors that occur during the fetching process
+        // Redirect to a generic error page
+        window.location.href = '/generic.html'; // Change the path to your generic error page
     }
 }
+
+
 
 function displayPlayerInfo(playerInfo) {
     const playerInfoDiv = document.getElementById('playerInfo');
@@ -78,11 +104,11 @@ function displayPlayerInfo(playerInfo) {
     `;
 
     // Code to display the player's location using dynmap
-    if (dynmap) {
-        const playerLocationX = playerInfo.location[0].toFixed(0);
-        const playerLocationY = playerInfo.location[1].toFixed(0);
-        const playerLocationZ = playerInfo.location[2].toFixed(0);
-        const mapURL = `${dynmapProtocol}://${serverIP}:${dynmapPort}/?worldname=${dimensionMap}&mapname=flat&zoom=0&x=${playerLocationX}&y=${playerLocationY}&z=${playerLocationZ}`;
+    if (dynmap && playerInfo.location) {
+        const [x, y, z] = playerInfo.location.map(coord => coord.toFixed(0));
+        const dimensionMap = getDimensionMap(playerInfo.dimension);
+
+        const mapURL = `${dynmapProtocol}://${serverIP}:${dynmapPort}/?worldname=${dimensionMap}&mapname=flat&zoom=0&x=${x}&y=${y}&z=${z}`;
 
         const mapLink = document.createElement('a');
         mapLink.href = mapURL;
@@ -95,20 +121,15 @@ function displayPlayerInfo(playerInfo) {
     }
 }
 
-
-
-
-window.onload = function () {
-    const urlParams = new URLSearchParams(window.location.search);
-    const uuid = urlParams.get('uuid');
-
-    if (uuid) {
-        fetchPlayerInfo(uuid);
-
-        setInterval(() => {
-            fetchPlayerInfo(uuid);
-        }, 1000);
-    } else {
-        console.error('UUID not provided in the URL');
+function getDimensionMap(dimension) {
+    switch (dimension) {
+        case "NORMAL":
+            return "world";
+        case "NETHER":
+            return "world_nether";
+        case "THE_END":
+            return "world_the_end";
+        default:
+            return "Unknown";
     }
-};
+}

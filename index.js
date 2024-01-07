@@ -13,7 +13,7 @@ const protocol = process.env.SERVERTAP_PROTOCOL
 const dynmap = process.env.DYNMAP
 const dynmapPort = process.env.DYNMAP_PORT
 const dynmapProtocol = process.env.DYNMAP_PROTOCOL
-
+const worldUUID = process.env.UUID
 // Function to convert seconds to a readable time format (HH:MM:SS)
 function secondsToHms(seconds) {
     const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
@@ -41,17 +41,21 @@ app.get('/server-data', async (req, res) => {
         };
 
         // Fetch server data
-        const serverResponse = await axios.get(`${protocol}://${server_IP}:${servertapPort}/v1/server`, { headers });
+        const serverResponse = await axios.get(`${protocol}://${server_IP}:${servertapPort}/v1/server`, {headers});
         const serverData = serverResponse.data;
 
         // Fetch player data
-        const playersResponse = await axios.get(`${protocol}://${server_IP}:${servertapPort}/v1/players`, { headers });
+        const playersResponse = await axios.get(`${protocol}://${server_IP}:${servertapPort}/v1/players`, {headers});
         const playersData = playersResponse.data;
 
-        // Combine server and player data into a single object
+
+        const worldResponse = await axios.get(`${protocol}://${server_IP}:${servertapPort}/v1/worlds/${worldUUID}`, {headers});
+        const worldData = worldResponse.data;
+
+        // Combine server, player, and world data into a single object
         const combinedData = {
             motd: serverData.motd,
-            weather: getWeatherStatus(), // Implement getWeatherStatus() based on weather data
+            weather: getWeatherStatus(worldData), // Pass worldData to getWeatherStatus function
             tps: serverData.tps,
             uptime: secondsToHms(serverData.health.uptime),
             freeMemoryGB: bytesToGB(serverData.health.freeMemory),
@@ -89,6 +93,12 @@ app.get('/player', async (req, res) => {
 // Proxy endpoint to forward requests to Mojang API
 app.get('/mojang-api', async (req, res) => {
     const { uuid } = req.query;
+
+    const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+    if (!uuidRegex.test(uuid)) {
+        return res.status(400).json({ error: 'Invalid UUID' });
+    }
+
     const trimmedUUID = uuid.replace(/-/g, '');
 
     try {
@@ -105,11 +115,11 @@ app.get('/mojang-api', async (req, res) => {
     }
 });
 
-function getWeatherStatus(isStorm, isThundering) {
-    if (isThundering) {
-        return 'Thunder';
-    } else if (isStorm) {
-        return 'Rain';
+function getWeatherStatus(worldData) {
+    if (worldData.storm && worldData.thundering) {
+        return 'Thunder Storm';
+    } else if (worldData.storm && !worldData.thundering) {
+        return 'Storm';
     } else {
         return 'Clear';
     }
@@ -124,7 +134,7 @@ app.get('/', (req, res) => {
 app.use(express.static('public'));
 
 // Start the server
-const PORT = process.env.NODE_PORT || 3000;
+const PORT = process.env.NODE_PORT;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
