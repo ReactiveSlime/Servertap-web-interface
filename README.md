@@ -34,6 +34,5 @@ When using this there are two pages made available by default.
  1.2: to disable just remove line 115 in Servertap-web-interface/public/assets/js
 /player.js. https://github.com/ReactiveSlime/Servertap-web-interface/blob/main/public/assets/js/player.js#L115
 
-2: if there are a few people on line the top and bottom of the page gets cut off
 
-3: RAM bar calculations are wrong
+2: RAM bar calculations are wrong
